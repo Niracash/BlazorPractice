@@ -1,0 +1,33 @@
+﻿@page "/"
+@inject Codes.RoleHandler _roleHandler;
+@inject IServiceProvider _serviceProvider;
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+@inject Codes.HashingHandler _hashingHandler;
+
+
+
+<PageTitle>Home</PageTitle>
+
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <h1>Admin Logged in</h1>
+    </Authorized>
+    <NotAuthorized>
+        <h1>Not Admin</h1>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+    // test
+    protected override async Task OnInitializedAsync()
+    {
+        //await _roleHandler.CreateUserRole("nirakashsapkota@gmail.com", "Admin", _serviceProvider);
+        //Console.WriteLine("Hello");
+
+        string hashedValue = _hashingHandler.PBKDF2Hashing("3333333333");
+        string hashedValueT = _hashingHandler.PBKDF2Hashing("3333333333");
+        bool matched = hashedValueT == hashedValue;
+    }
+
+}
