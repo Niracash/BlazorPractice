@@ -68,8 +68,7 @@
     public async Task RegisterUser(EditContext editContext)
     {
         var user = CreateUser();
-
-        // emable 2f
+        //n
         user.TwoFactorEnabled = true;
 
         await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
@@ -84,6 +83,11 @@
         }
 
         Logger.LogInformation("User created a new account with password.");
+
+        // n
+        var t1 = UserManager.GenerateEmailConfirmationTokenAsync(user);
+        var t2 = UserManager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider);
+        var tokenCode = t2.Result;
 
         var userId = await UserManager.GetUserIdAsync(user);
         var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
@@ -146,3 +150,4 @@
         public string ConfirmPassword { get; set; } = "";
     }
 }
+

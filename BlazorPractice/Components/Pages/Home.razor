@@ -3,6 +3,8 @@
 @inject IServiceProvider _serviceProvider;
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
 @inject Codes.HashingHandler _hashingHandler;
+@inject Codes.SymetricHandler _symetricHandler;
+@inject Codes.AsymetricHandler _asymetricHandler;
 
 
 
@@ -22,12 +24,22 @@
     // test
     protected override async Task OnInitializedAsync()
     {
-        //await _roleHandler.CreateUserRole("nirakashsapkota@gmail.com", "Admin", _serviceProvider);
+        await _roleHandler.CreateUserRole("Admin", "nirakashsap@gmail.com", _serviceProvider);
         //Console.WriteLine("Hello");
 
         string hashedValue = _hashingHandler.PBKDF2Hashing("3333333333");
         string hashedValueT = _hashingHandler.PBKDF2Hashing("3333333333");
         bool matched = hashedValueT == hashedValue;
+
+
+        // string encryptText = _symetricHandler.Encrypt("Web milk");
+        // string decryptText = _symetricHandler.Decrypt(encryptText);
+
+        string encryptText = _asymetricHandler.EncryptAsymetric("Web milk");
+        string decryptText = _asymetricHandler.DecryptAsymetric(encryptText);
+
+
+
     }
 
 }
