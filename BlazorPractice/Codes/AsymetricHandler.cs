@@ -10,13 +10,26 @@ namespace BlazorPractice.Codes
         //constructor
         public AsymetricHandler()
         {
-            using (RSA rsa = RSA.Create())
+            if (!File.Exists("privateKey.pem"))
             {
-                RSAParameters privatKeyParameter = rsa.ExportParameters(true);
-                _privateKey = rsa.ToXmlString(true);
 
-                RSAParameters publicKeyParameter = rsa.ExportParameters(false);
-                _privateKey = rsa.ToXmlString(false);
+                using (RSA rsa = RSA.Create())
+                {
+                    RSAParameters privatKeyParameter = rsa.ExportParameters(true);
+                    _privateKey = rsa.ToXmlString(true);
+
+                    RSAParameters publicKeyParameter = rsa.ExportParameters(false);
+                    _publicKey = rsa.ToXmlString(false);
+
+                    File.WriteAllText("privateKey", _privateKey);
+                    File.WriteAllText("publicKey", _publicKey);
+                }
+            }
+            else
+            {
+               _privateKey = File.ReadAllText("privateKey.pem");
+                _publicKey = File.ReadAllText("publicKey.pem");
+
             }
         }
         public string EncryptAsymetric(string textToEncrypt) =>

@@ -6,8 +6,13 @@ using BlazorPractice.Models;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// dev-certs https --clean
+// dotnet dev-certs https -ep %USERPROFILE%\.aspnet\https\BlazorPractice.pfx -p Passw0rd.
+// dev-certs https --trust
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -47,24 +52,24 @@ builder.Services.AddAuthorization(options => {
     });
 });
 
-// crossplatform path
-//string userFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-//userFolder = Path.Combine(userFolder, ".aspnet");
-//userFolder = Path.Combine(userFolder, "https");
-//userFolder = Path.Combine(userFolder, "HSTest.pfx");
-//builder.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate:path").Value = userFolder;
+//crossplatform path
+string userFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+userFolder = Path.Combine(userFolder, ".aspnet");
+userFolder = Path.Combine(userFolder, "https");
+userFolder = Path.Combine(userFolder, "BlazorPractice.pfx");
+builder.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate:path").Value = userFolder;
 
-//// empty password in appsetting.json
-//string kestrelCertPassword = builder.Configuration.GetValue<string>("KestrelCertPassword");
-//builder.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate:password").Value = kestrelCertPassword;
+// empty password in appsetting.json
+string kestrelCertPassword = builder.Configuration.GetValue<string>("KestrelPassword");
+builder.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate:password").Value = kestrelCertPassword;
 
 //n
-//builder.WebHost.UseKestrel((context, serverOptions) =>
-//serverOptions.Configure(context.Configuration.GetSection("Kestrel")).Endpoint("HTTPS", listenOptions =>
-//{
-//    listenOptions.HttpsOptions.SslProtocols = SslProtocols.Tls13;
-//})
-//);
+builder.WebHost.UseKestrel((context, serverOptions) =>
+serverOptions.Configure(context.Configuration.GetSection("Kestrel")).Endpoint("HTTPS", listenOptions =>
+{
+    listenOptions.HttpsOptions.SslProtocols = SslProtocols.Tls12;
+})
+);
 
 builder.Services.Configure<IdentityOptions>(options =>
 {
@@ -77,13 +82,18 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Password.RequiredUniqueChars = 1;
 });
 
-var connectionString = builder.Configuration.GetConnectionString("TodoListConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ToDoContext>(options =>
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+
+var connectionString2 = builder.Configuration.GetConnectionString("TodoListConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+builder.Services.AddDbContext<ToDoContext>(options =>
+    options.UseSqlServer(connectionString2));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();

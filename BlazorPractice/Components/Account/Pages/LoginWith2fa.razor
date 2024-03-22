@@ -64,8 +64,8 @@
             throw new InvalidOperationException("Unable to load two-factor authentication user.");
 
         // login generate code
-        var t2 = UserManager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider);
-        var tokenCode = t2.Result;
+        // var t2 = UserManager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider);
+        // var tokenCode = t2.Result;
 
     }
 
@@ -73,8 +73,8 @@
     {
 
         var authenticatorCode = Input.TwoFactorCode!.Replace(" ", string.Empty).Replace("-", string.Empty);
-        // var result = await SignInManager.TwoFactorAuthenticatorSignInAsync(authenticatorCode, RememberMe, Input.RememberMachine);
-        var result = await SignInManager.TwoFactorSignInAsync(TokenOptions.DefaultEmailProvider, authenticatorCode, RememberMe, Input.RememberMachine);
+        var result = await SignInManager.TwoFactorAuthenticatorSignInAsync(authenticatorCode, RememberMe, Input.RememberMachine);
+        // var result = await SignInManager.TwoFactorSignInAsync(TokenOptions.DefaultEmailProvider, authenticatorCode, RememberMe, Input.RememberMachine);
 
         var userId = await UserManager.GetUserIdAsync(user);
 

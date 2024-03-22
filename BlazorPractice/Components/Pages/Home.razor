@@ -1,45 +1,183 @@
 ﻿@page "/"
 @inject Codes.RoleHandler _roleHandler;
 @inject IServiceProvider _serviceProvider;
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+@* @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]*@
 @inject Codes.HashingHandler _hashingHandler;
 @inject Codes.SymetricHandler _symetricHandler;
 @inject Codes.AsymetricHandler _asymetricHandler;
+@inject AuthenticationStateProvider _asp;
+@inject Models.ToDoContext _todoContext; 
 
 
 
 <PageTitle>Home</PageTitle>
 
-<AuthorizeView Roles="Admin">
-    <Authorized>
-        <h1>Admin Logged in</h1>
-    </Authorized>
-    <NotAuthorized>
-        <h1>Not Admin</h1>
-    </NotAuthorized>
-</AuthorizeView>
+@if (_iscreated == false)
+{
+    <div class="container mt-3">
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" placeholder="CPR Value" @bind="CprValue">
+            <button class="btn btn-primary" @onclick="ButtonClick">Save</button>
+        </div>
+        @if (!string.IsNullOrEmpty(ErrorMsg))
+        {
+            <div class="alert alert-danger" role="alert">
+                @ErrorMsg
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="container mt-3">
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" placeholder="To Do Value" @bind="TodoValue">
+            <button class="btn btn-primary" @onclick="ButtonClickTodo">Save</button>
+        </div>
 
+        @if (ToDoList?.Count > 0)
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Items</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in ToDoList)
+                    {
+                        <tr>
+                            <td>
+                                @_asymetricHandler.DecryptAsymetric(item.Item)
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (_isAdmin)
+            {
+                <button class="btn btn-danger btn-sm" @onclick="Delete">Delete</button>
+            }
+        }
+    </div>
+}
 
 @code {
-    // test
+    // binding between view and code
+
+    private string CprValue { get; set; }
+    private string UserName { get; set; }
+    private string ErrorMsg { get; set; }
+    private string TodoValue { get; set; }
+    private bool _isAdmin { get; set; }
+
+
+
+    private List<BlazorPractice.Models.Todolist> ToDoList { get; set; }
+
+    private bool _iscreated { get; set; }
+
+
+
+
     protected override async Task OnInitializedAsync()
     {
-        await _roleHandler.CreateUserRole("Admin", "nirakashsap@gmail.com", _serviceProvider);
+        // get user
+        var authState = await _asp.GetAuthenticationStateAsync();
+        var user = authState.User;
+        UserName = user.Identity.Name;
         //Console.WriteLine("Hello");
+        _isAdmin = user.IsInRole("Admin");
 
-        string hashedValue = _hashingHandler.PBKDF2Hashing("3333333333");
-        string hashedValueT = _hashingHandler.PBKDF2Hashing("3333333333");
-        bool matched = hashedValueT == hashedValue;
+        // string hashedValue = _hashingHandler.PBKDF2Hashing("3333333333");
+        // string hashedValueT = _hashingHandler.PBKDF2Hashing("3333333333");
+        // bool matched = hashedValueT == hashedValue;
 
 
         // string encryptText = _symetricHandler.Encrypt("Web milk");
         // string decryptText = _symetricHandler.Decrypt(encryptText);
 
-        string encryptText = _asymetricHandler.EncryptAsymetric("Web milk");
-        string decryptText = _asymetricHandler.DecryptAsymetric(encryptText);
+        // string encryptText = _asymetricHandler.EncryptAsymetric("Web milk");
+        // string decryptText = _asymetricHandler.DecryptAsymetric(encryptText);
 
 
+        // await _roleHandler.CreateUserRole("Admin", "nirakashsap@gmail.com", _serviceProvider);
+    }
 
+
+    private async Task ButtonClick()
+    {
+        string hashedCprValue = _hashingHandler.SHA2Hashing(CprValue);
+
+        var matchUser = _todoContext.Cprs.FirstOrDefault(x => x.User == UserName);
+
+        if (matchUser == null)
+        {
+            _iscreated = false;
+            // save hashed cpr in db
+            var cpr = new BlazorPractice.Models.Cpr
+                {
+                    User = UserName,
+                    CprNr = hashedCprValue
+                };
+            _todoContext.Cprs.Add(cpr);
+            _todoContext.SaveChanges();
+
+            CprValue = "";
+
+        }
+        else
+        {
+            _iscreated = true;
+            var getCpr = matchUser.CprNr;
+            string hashedCprValue2 = _hashingHandler.SHA2Hashing(CprValue);
+            bool matchHashed = getCpr == hashedCprValue2;
+            if (matchHashed)
+            {
+                //
+                ToDoList = _todoContext.Todolists.Where(x => x.UserId == matchUser.Id).ToList();
+            }
+            else
+            {
+                _iscreated = false;
+                ErrorMsg = "Wrong Cpr!!!";
+            }
+
+        }
+
+    }
+
+    private async Task ButtonClickTodo()
+    {
+
+        var loggedInUser = _todoContext.Cprs.FirstOrDefault(x => x.User == UserName).Id;
+
+        var todo = new BlazorPractice.Models.Todolist
+                {
+                    UserId = loggedInUser,
+                    Item = _asymetricHandler.EncryptAsymetric(TodoValue)
+                };
+        _todoContext.Todolists.Add(todo);
+        _todoContext.SaveChanges();
+
+        ToDoList = _todoContext.Todolists.Where(a => a.UserId == loggedInUser).ToList();
+
+    }
+    private void Delete()
+    {
+        if (_isAdmin)
+        {
+            var loggedInUser = _todoContext.Cprs.FirstOrDefault(x => x.User == UserName).Id;
+
+            var itemList = _todoContext.Todolists.Where(a => a.UserId == loggedInUser).ToList();
+            foreach(var item in itemList)
+            {
+                _todoContext.Todolists.Remove(item);
+            }
+            _todoContext.SaveChanges();
+
+            ToDoList = _todoContext.Todolists.Where(a => a.UserId == loggedInUser).ToList();
+        }
     }
 
 }
